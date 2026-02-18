@@ -470,8 +470,8 @@ func (al *AgentLoop) runLLMIteration(ctx context.Context, agent *AgentInstance, 
 				"model":             agent.Model,
 				"messages_count":    len(messages),
 				"tools_count":       len(providerToolDefs),
-				"max_tokens":        8192,
-				"temperature":       0.7,
+				"max_tokens":        agent.MaxTokens,
+				"temperature":       agent.Temperature,
 				"system_prompt_len": len(messages[0].Content),
 			})
 
@@ -492,8 +492,8 @@ func (al *AgentLoop) runLLMIteration(ctx context.Context, agent *AgentInstance, 
 				fbResult, fbErr := al.fallback.Execute(ctx, agent.Candidates,
 					func(ctx context.Context, provider, model string) (*providers.LLMResponse, error) {
 						return agent.Provider.Chat(ctx, messages, providerToolDefs, model, map[string]interface{}{
-							"max_tokens":  8192,
-							"temperature": 0.7,
+							"max_tokens":  agent.MaxTokens,
+							"temperature": agent.Temperature,
 						})
 					},
 				)
@@ -508,8 +508,8 @@ func (al *AgentLoop) runLLMIteration(ctx context.Context, agent *AgentInstance, 
 				return fbResult.Response, nil
 			}
 			return agent.Provider.Chat(ctx, messages, providerToolDefs, agent.Model, map[string]interface{}{
-				"max_tokens":  8192,
-				"temperature": 0.7,
+				"max_tokens":  agent.MaxTokens,
+				"temperature": agent.Temperature,
 			})
 		}
 
@@ -904,8 +904,8 @@ func (al *AgentLoop) summarizeSession(agent *AgentInstance, sessionKey string) {
 
 		mergePrompt := fmt.Sprintf("Merge these two conversation summaries into one cohesive summary:\n\n1: %s\n\n2: %s", s1, s2)
 		resp, err := agent.Provider.Chat(ctx, []providers.Message{{Role: "user", Content: mergePrompt}}, nil, agent.Model, map[string]interface{}{
-			"max_tokens":  1024,
-			"temperature": 0.3,
+			"max_tokens":  agent.SummaryMaxTokens,
+			"temperature": agent.SummaryTemperature,
 		})
 		if err == nil {
 			finalSummary = resp.Content
@@ -939,8 +939,8 @@ func (al *AgentLoop) summarizeBatch(ctx context.Context, agent *AgentInstance, b
 	}
 
 	response, err := agent.Provider.Chat(ctx, []providers.Message{{Role: "user", Content: prompt}}, nil, agent.Model, map[string]interface{}{
-		"max_tokens":  1024,
-		"temperature": 0.3,
+		"max_tokens":  agent.SummaryMaxTokens,
+		"temperature": agent.SummaryTemperature,
 	})
 	if err != nil {
 		return "", err
